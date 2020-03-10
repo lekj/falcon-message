@@ -22,6 +22,7 @@ type Weixin struct {
     AgentID        string `json:"agentId"`
     Secret         string `json:"secret"`
     EncodingAESKey string `json:"encodingAESKey"`
+    TemplateFile   string
 }
 
 type AlarmMessage struct {

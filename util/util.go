@@ -78,6 +78,15 @@ func HandleContent(content string) (*config.AlarmMessage, error) {
     if err != nil {
         return nil, err
     }
-    return &config.AlarmMessage{Level: args[0], Type: args[1], Endpoint: args[2], Expression: expression,
+    
+    argType := args[1];
+    if( argType == "OK" ){
+        argType = "OK（恢复正常）";
+    } else if( argType == "PROBLEM" ){
+        argType = "PROBLEM（发生故障）";
+    }
+    
+    
+    return &config.AlarmMessage{Level: args[0], Type: argType, Endpoint: args[2], Expression: expression,
         Desc: desc, Counter: counter, Tags: tags, TriggerCount: triggerCount, Count: count, Time: t}, nil
 }

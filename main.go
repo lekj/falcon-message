@@ -41,6 +41,7 @@ var (
     ding *sender.DingTalk
     wx   *sender.Weixin
     tpl *template.Template
+    tpl_wx *template.Template
 )
 
 func main() {
@@ -63,7 +64,9 @@ func main() {
             return t.Add(-(time.Second * time.Duration(seconds))).Format(format)
         }}
 
-    tpl = template.Must(template.New(path.Base(cfg.DingTalk.TemplateFile)).Funcs(funcMap).ParseFiles(cfg.DingTalk.TemplateFile))
+    tpl    = template.Must(template.New(path.Base(cfg.DingTalk.TemplateFile)).Funcs(funcMap).ParseFiles(cfg.DingTalk.TemplateFile))
+    tpl_wx = template.Must(template.New(path.Base(cfg.Weixin.TemplateFile)).Funcs(funcMap).ParseFiles(cfg.Weixin.TemplateFile))
+
     if cfg.DingTalk.Enable {
         ding = sender.NewDingTalk()
     }
@@ -99,16 +102,41 @@ func main() {
         }
 
         var buffer bytes.Buffer
+        if err := tpl_wx.Execute(&buffer, msg); err != nil {
+            return err
+        }
+        content = buffer.String()
+
+        var weixin_token strings.Builder        //微信 把微信的帐号拼接起来，一次发送。 
+        if cfg.Weixin.Enable {
+            for _, v := range strings.Split(tos, ",") {
+                if( len( v ) > 0 && ! strings.HasPrefix( v, IMDingPrefix ) ){
+                    if( weixin_token.Len() > 0 ){
+                        weixin_token.WriteString( "," )
+                    }
+                    weixin_token.WriteString( v )
+                }
+            }
+        }
+        log.Println("weixin token:", weixin_token );
+        if cfg.Weixin.Enable {
+            if( weixin_token.Len() > 0 ){
+                if err := wx.Send(weixin_token.String(), content); err != nil {
+                    //return echo.NewHTTPError(500, err.Error())
+                    log.Println("ERR:", err.Error())
+                }
+            }
+        }
+        
+        buffer.Reset()
         if err := tpl.Execute(&buffer, msg); err != nil {
             return err
         }
         content = buffer.String()
         
-        var weixin_token strings.Builder
-        
         for _, v := range strings.Split(tos, ",") {
             go func(onetoken string) {
-                log.Println("one token:", onetoken )
+                // log.Println("one token:", onetoken )
                 if strings.HasPrefix(onetoken, IMDingPrefix) { //是钉钉
                    token := onetoken[len(IMDingPrefix):]
                    log.Println("ding ding token:", token );
@@ -117,33 +145,8 @@ func main() {
                            log.Println("ERR:", err)
                        }
                    }
-               } else { //微信 把微信的帐号拼接起来，一次发送。
-                   log.Println("weixin one token:", onetoken )
-                   if cfg.Weixin.Enable {
-                       if( len( onetoken ) > 0 ){
-                           if( len( weixin_token ) > 0 ){
-                               weixin_token.WriteString( "," )
-                           }
-                           weixin_token.WriteString( onetoken )
-                       }
-                       //// log.Println("weixin enable:", onetoken );
-                       //if err := wx.Send(onetoken, content); err != nil {
-                       //    //return echo.NewHTTPError(500, err.Error())
-                       //    log.Println("ERR:", err.Error())
-                       //}
-                   }
                }
             }(v)
-        }
-
-        log.Println("weixin token:", weixin_token );
-        if cfg.Weixin.Enable {
-            if( len( weixin_token ) > 0 ){
-                if err := wx.Send(weixin_token, content); err != nil {
-                    //return echo.NewHTTPError(500, err.Error())
-                    log.Println("ERR:", err.Error())
-                }
-            }
         }
 
         return nil
