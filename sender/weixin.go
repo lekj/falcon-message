@@ -15,7 +15,7 @@ import (
 	//"github.com/labstack/gommon/log"
 	"github.com/patrickmn/go-cache"
 	"github.com/lekj/falcon-message/util"
-	"github.com/lekj/go-tools/encrypt"
+	"github.com/sdvdxl/go-tools/encrypt"
 )
 
 type Weixin struct {
