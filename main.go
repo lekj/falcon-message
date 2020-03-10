@@ -12,9 +12,9 @@ import (
 
     "github.com/labstack/echo"
     "github.com/labstack/echo/middleware"
-    "github.com/sdvdxl/falcon-message/config"
-    "github.com/sdvdxl/falcon-message/sender"
-    "github.com/sdvdxl/falcon-message/util"
+    "github.com/lekj/falcon-message/config"
+    "github.com/lekj/falcon-message/sender"
+    "github.com/lekj/falcon-message/util"
     "github.com/tylerb/graceful"
 )
 
@@ -40,7 +40,6 @@ var (
     cfg  config.Config
     ding *sender.DingTalk
     wx   *sender.Weixin
-
     tpl *template.Template
 )
 
@@ -68,10 +67,14 @@ func main() {
     if cfg.DingTalk.Enable {
         ding = sender.NewDingTalk()
     }
-
+    
+    // log.Println("cfg Weixin Enable:", cfg.Weixin.Enable )
+    log.Println("cfg Weixin CorpID:",cfg.Weixin.CorpID,",Secret:",cfg.Weixin.Secret, ", agentId:", cfg.Weixin.AgentID )
     if cfg.Weixin.Enable {
-        wx = sender.NewWeixin(cfg.Weixin.CorpID, cfg.Weixin.Secret)
+        wx = sender.NewWeixin(cfg.Weixin.CorpID, cfg.Weixin.Secret, cfg.Weixin.AgentID )
+        // log.Println("go wx:", &wx)
         go wx.GetAccessToken()
+        // log.Println("go wx.GetToken end")
     }
 
     engine := echo.New()
@@ -100,23 +103,45 @@ func main() {
             return err
         }
         content = buffer.String()
+        
+        var weixin_token strings.Builder
+        
+        for _, v := range strings.Split(tos, ",") {
+            go func(onetoken string) {
+                log.Println("one token:", onetoken )
+                if strings.HasPrefix(onetoken, IMDingPrefix) { //是钉钉
+                   token := onetoken[len(IMDingPrefix):]
+                   log.Println("ding ding token:", token );
+                   if cfg.DingTalk.Enable {
+                       if err := ding.Send(token, content, cfg.DingTalk.MessageType); err != nil {
+                           log.Println("ERR:", err)
+                       }
+                   }
+               } else { //微信 把微信的帐号拼接起来，一次发送。
+                   log.Println("weixin one token:", onetoken )
+                   if cfg.Weixin.Enable {
+                       if( len( onetoken ) > 0 ){
+                           if( len( weixin_token ) > 0 ){
+                               weixin_token.WriteString( "," )
+                           }
+                           weixin_token.WriteString( onetoken )
+                       }
+                       //// log.Println("weixin enable:", onetoken );
+                       //if err := wx.Send(onetoken, content); err != nil {
+                       //    //return echo.NewHTTPError(500, err.Error())
+                       //    log.Println("ERR:", err.Error())
+                       //}
+                   }
+               }
+            }(v)
+        }
 
-        if strings.HasPrefix(tos, IMDingPrefix) { //是钉钉
-            tokens := tos[len(IMDingPrefix):]
-
-            if cfg.DingTalk.Enable {
-                for _, v := range strings.Split(tokens, ";") {
-                    go func(token string) {
-                        if err := ding.Send(token, content, cfg.DingTalk.MessageType); err != nil {
-                            log.Println("ERR:", err)
-                        }
-                    }(v)
-                }
-            }
-        } else { //微信
-            if cfg.Weixin.Enable {
-                if err := wx.Send(tos, content); err != nil {
-                    return echo.NewHTTPError(500, err.Error())
+        log.Println("weixin token:", weixin_token );
+        if cfg.Weixin.Enable {
+            if( len( weixin_token ) > 0 ){
+                if err := wx.Send(weixin_token, content); err != nil {
+                    //return echo.NewHTTPError(500, err.Error())
+                    log.Println("ERR:", err.Error())
                 }
             }
         }
@@ -124,7 +149,7 @@ func main() {
         return nil
     })
 
-    log.Println("listening on ", cfg.Addr)
+    log.Println("end listening on ", cfg.Addr)
     if err := server.ListenAndServe(); err != nil {
         log.Fatal(err)
     }
