@@ -14,9 +14,14 @@
 .glide/
 
 .history
+
+*.tar.gz
+
 vendor
 cfg.json
 var
 message.zip
 falcon-message
 falcon-message-linux64.zip
+falcon-message-.tar.gz
+

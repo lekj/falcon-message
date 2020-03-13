@@ -186,7 +186,7 @@ func wxPost(url string, data msgPost) (string, error) {
 	return string(body), err
 }
 
-func (wx Weixin) Send(tos string, message string) error {
+func (wx Weixin) Send(tos string, message string, subject string) error {
 	var toUser string
 	if userList := strings.Split(tos, ","); len(userList) > 1 {
 		toUser = strings.Join(userList, "|")
@@ -227,7 +227,7 @@ func (wx Weixin) Send(tos string, message string) error {
              MsgType: "textcard",
              AgentID: util.StringToInt(wx.AgentID),
              TextCard : textcard { 
-                 Title: "服务器告警",
+                 Title: subject,
                  Description: message,
                  Url: "URL",
                  Btntxt: "",

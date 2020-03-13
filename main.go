@@ -91,21 +91,40 @@ func main() {
         log.Println("message comming")
         tos := c.FormValue("tos")
         content := c.FormValue("content")
-        log.Println("tos:", tos, " content:", content)
+        dd_content := content
+        subject := c.FormValue("subject")
+        log.Println("tos:", tos, " content:", content, " subject:", subject )
         if content == "" {
             return echo.NewHTTPError(http.StatusBadRequest, "content is requied")
         }
 
-        msg, err := util.HandleContent(content)
-        if err != nil {
-            return err
+        if subject == "" {
+            subject = "服务器告警"
         }
 
         var buffer bytes.Buffer
-        if err := tpl_wx.Execute(&buffer, msg); err != nil {
-            return err
+        // log.Println( strings.Index(subject, "日常报告") )
+        if strings.Index( subject, "日常报告") < 0  {
+            msg, err := util.HandleContent(content)
+            if err != nil {
+                return err
+            }
+
+            if err = tpl_wx.Execute(&buffer, msg); err != nil {
+                return err
+            }
+            content = buffer.String()
+
+            buffer.Reset()
+            if err = tpl.Execute(&buffer, msg); err != nil {
+                return err
+            }
+            dd_content = buffer.String()
+        }else{
+            dd_content = "## " + subject + "\n\n " + strings.Replace( strings.Replace( strings.Replace( content, "\n", "\n- ", -1 ) , "- # 服务器", "# 服务器", -1 ), "- \n- ---", "---", -1 )
+            log.Println( "dd content:", dd_content )
         }
-        content = buffer.String()
+            
 
         var weixin_token strings.Builder        //微信 把微信的帐号拼接起来，一次发送。 
         if cfg.Weixin.Enable {
@@ -121,19 +140,39 @@ func main() {
         log.Println("weixin token:", weixin_token );
         if cfg.Weixin.Enable {
             if( weixin_token.Len() > 0 ){
-                if err := wx.Send(weixin_token.String(), content); err != nil {
-                    //return echo.NewHTTPError(500, err.Error())
-                    log.Println("ERR:", err.Error())
+                kov := strings.Split( content, "\n---\n" )
+                log.Println( "len kov:", len( kov ), ", kov:" , kov );
+                if len( kov ) <= 0 {
+                    if err := wx.Send(weixin_token.String(), content, subject ); err != nil {
+                        //return echo.NewHTTPError(500, err.Error())
+                        log.Println("ERR:", err.Error())
+                    }
+                } else {
+                    for i := 0; i < len( kov ) ; i++ {
+                        if ( strings.Replace( strings.Replace(kov[ i ], "\n", "", -1 ) , " ", "", -1) ) != "" {
+                            cont:= strip( kov[ i ], "/ \n\r\t" )
+                            // log.Println( "cont:", cont )
+                            idx := strings.Index( cont, "\n" )
+                            lvv := len( cont )
+                            serverName := string( cont[ 2 : idx ] )
+                            sendtext   := string( cont[ idx + 1 : lvv ] )
+                            log.Println("s:",serverName," x:",sendtext )
+                            
+                            if len( serverName ) > 0 && len( sendtext ) >0 {
+                                new_subject := strings.Replace( subject, "日常报告", ""+ strings.Replace( serverName, "# ", "", 1 ) + " 日常报告", -1 )
+
+                                log.Println( "new_subject:", new_subject )
+                                if err := wx.Send(weixin_token.String(), sendtext, new_subject ); err != nil {
+                                    //return echo.NewHTTPError(500, err.Error())
+                                    log.Println("ERR:", err.Error())
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
-        
-        buffer.Reset()
-        if err := tpl.Execute(&buffer, msg); err != nil {
-            return err
-        }
-        content = buffer.String()
-        
+
         for _, v := range strings.Split(tos, ",") {
             go func(onetoken string) {
                 // log.Println("one token:", onetoken )
@@ -141,7 +180,7 @@ func main() {
                    token := onetoken[len(IMDingPrefix):]
                    log.Println("ding ding token:", token );
                    if cfg.DingTalk.Enable {
-                       if err := ding.Send(token, content, cfg.DingTalk.MessageType); err != nil {
+                       if err := ding.Send(token, dd_content, cfg.DingTalk.MessageType); err != nil {
                            log.Println("ERR:", err)
                        }
                    }
@@ -156,6 +195,37 @@ func main() {
     if err := server.ListenAndServe(); err != nil {
         log.Fatal(err)
     }
+}
+
+func strip(s_ string, chars_ string) string {
+	s , chars := []rune(s_) , []rune(chars_)
+	length := len(s)
+	max := len(s) - 1
+	l, r := true, true //标记当左端或者右端找到正常字符后就停止继续寻找
+	start, end := 0, max
+	tmpEnd := 0
+	charset := make(map[rune]bool) //创建字符集，也就是唯一的字符，方便后面判断是否存在
+	for i := 0; i < len(chars); i++ {
+		charset[chars[i]] = true
+	}
+	for i := 0; i < length; i++ {
+		if _, exist := charset[s[i]]; l && !exist {
+			start = i
+			l = false
+		}
+		tmpEnd = max - i
+		if _, exist := charset[s[tmpEnd]]; r && !exist {
+			end = tmpEnd
+			r = false
+		}
+		if !l && !r{
+			break
+		}
+	}
+	if l && r {  // 如果左端和右端都没找到正常字符，那么表示该字符串没有正常字符
+		return ""
+	}
+	return string(s[start : end+1])
 }
 
 // WxAuth 开启回调模式验证
