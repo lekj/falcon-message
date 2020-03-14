@@ -15,6 +15,7 @@
 
 .history
 
+*.swp
 *.tar.gz
 
 vendor

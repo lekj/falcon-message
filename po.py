@@ -1,3 +1,4 @@
+######## #!/usr/local/python-2.7/bin/python2.7
 #coding=utf-8
 import json
 import time
@@ -6,17 +7,9 @@ import urllib
 import numpy as np
 import re
 import sys
+import os
 
 openfalcon = 'http://127.0.0.1:8080/api/v1'
-
-#读取json文件
-jsonPath = './cfg.json'
-with open(jsonPath,'r') as f:
-    data=json.load(f)
-#print( data )
-user = data["api"]["user"]
-password = data["api"]["password"]
-#print "u:",user," ,p:", password
 
 def get_sig(user=user, password=password):
     url = '%s/user/login' % openfalcon
@@ -25,6 +18,16 @@ def get_sig(user=user, password=password):
     return response.json()
 
 def get_graph_history( start_time, end_time ):
+
+    #读取json文件
+    jsonPath = os.path.split(os.path.realpath(__file__))[0] + '/cfg.json'
+    #jsonPath = '.'+'/cfg.json'
+    with open(jsonPath,'r') as f:
+        data=json.load(f)
+    #print( data )
+    user = data["api"]["user"]
+    password = data["api"]["password"]
+    #print "u:",user," ,p:", password
     
     sig = get_sig()
     headers = {
@@ -194,8 +197,7 @@ if __name__ == '__main__':
     end_time   = int(time.time())
     #start_time = end_time - 86400
     start_time = end_time - 86400
-
+    print "start: " + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
     print get_graph_history( start_time, end_time )
-
 
 
