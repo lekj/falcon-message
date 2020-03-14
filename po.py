@@ -11,7 +11,7 @@ import os
 
 openfalcon = 'http://127.0.0.1:8080/api/v1'
 
-def get_sig(user=user, password=password):
+def get_sig(user, password):
     url = '%s/user/login' % openfalcon
     response = requests.post(url, headers={"Content-Type":"application/json"}, data=json.dumps({"name":user, "password":password}), timeout=2)
     #print  response.text
@@ -29,7 +29,7 @@ def get_graph_history( start_time, end_time ):
     password = data["api"]["password"]
     #print "u:",user," ,p:", password
     
-    sig = get_sig()
+    sig = get_sig( user, password )
     headers = {
         'Apitoken': json.dumps({'name': sig['name'], 'sig': sig['sig']}),
         'Content-type': 'application/json',
