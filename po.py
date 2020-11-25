@@ -205,7 +205,7 @@ def countit( in_value ):
         lab_rang_wx = "{:.1f}".format( vmax )
     elif vmax-vmin < 1: 
         lab_rang = "{:.2f}~{:.2f}｜{:.2f}".format( vmin, vmax, vavg )
-        lab_rang_wx = "+{:.1f}".format( vmax )
+        lab_rang_wx = "~{:.1f}".format( vmax )
     else:
         lab_rang = "{:.2f}~{:.2f}｜{:.2f}".format( vmin, vmax, vavg )
         lab_rang_wx = "{:.1f}~{:.1f}｜{:.1f}".format( vmin, vmax, vavg )
