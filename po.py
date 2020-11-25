@@ -149,7 +149,7 @@ def get_graph_history( start_time, end_time ):
 
     text_wx = ""
     for key,value in data_wx.items():
-        text_wx += "S " + key + "\n" + value + "\n"
+        text_wx += "S=" + key + "\n" + value + "\n"
     text_wx = text_wx.rstrip().rstrip("\n").rstrip("-").rstrip("\n").rstrip() #.replace( "-# 服务器", "# 服务器" )
 
     #print '得到指定监控项的历史记录:', data
