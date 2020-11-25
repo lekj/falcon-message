@@ -8,13 +8,13 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
 	"time"
-        "log"
 	//"github.com/labstack/gommon/log"
-	"github.com/patrickmn/go-cache"
 	"github.com/lekj/falcon-message/util"
+	"github.com/patrickmn/go-cache"
 	"github.com/sdvdxl/go-tools/encrypt"
 )
 
@@ -56,11 +56,11 @@ func (wx Weixin) Auth(echostr string) ([]byte, error) {
 }
 
 func NewWeixin(corpId, secret, agentId string) *Weixin {
-	if corpId == "" || secret == "" || agentId == ""  {
+	if corpId == "" || secret == "" || agentId == "" {
 		log.Fatal("corpId或者secret OR agentId 获取失败, 请检查配置文件")
 	}
-        log.Println("New Weixin: ", corpId, ", se:", secret, ", aid:", agentId )
-	return &Weixin{tokenCache: cache.New(6000*time.Second, 5*time.Second),CorpID: corpId, Secret: secret, AgentID: agentId } 
+	log.Println("New Weixin: ", corpId, ", se:", secret, ", aid:", agentId)
+	return &Weixin{tokenCache: cache.New(6000*time.Second, 5*time.Second), CorpID: corpId, Secret: secret, AgentID: agentId}
 }
 
 //发送信息
@@ -69,10 +69,10 @@ type content struct {
 }
 
 type textcard struct {
-        Title       string `json:"title"`
-        Description string `json:"description"`
-        Url         string `json:"url"`
-        Btntxt      string `json:"btntxt"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Url         string `json:"url"`
+	Btntxt      string `json:"btntxt"`
 }
 
 type markdown struct {
@@ -80,14 +80,14 @@ type markdown struct {
 }
 
 type msgPost struct {
-	ToUser   string  `json:"touser"`
-        ToParty  string  `json:"toparty"`
-	ToTag    string  `json:"totag"`
-	MsgType  string  `json:"msgtype"`
-	AgentID  int     `json:"agentid"`
-	TextCard                textcard  `json:"textcard"`
-        Enable_id_trans         int       `json:"enable_id_trans"`
-        Enable_duplicate_check  int       `json:"Enable_duplicate_check"`
+	ToUser                 string   `json:"touser"`
+	ToParty                string   `json:"toparty"`
+	ToTag                  string   `json:"totag"`
+	MsgType                string   `json:"msgtype"`
+	AgentID                int      `json:"agentid"`
+	TextCard               textcard `json:"textcard"`
+	Enable_id_trans        int      `json:"enable_id_trans"`
+	Enable_duplicate_check int      `json:"Enable_duplicate_check"`
 }
 
 //type msgPost struct {
@@ -112,7 +112,6 @@ const (
 	weixinURL_Post = "https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token="
 )
 
-
 // GetAccessToken 从微信获取 AccessToken
 func (wx Weixin) GetAccessToken() {
 
@@ -122,7 +121,7 @@ func (wx Weixin) GetAccessToken() {
 
 		wxAccessTokenRUL := weixinURL + wx.CorpID + "&corpsecret=" + wx.Secret
 
-		log.Println("url:", wxAccessTokenRUL);
+		log.Println("url:", wxAccessTokenRUL)
 
 		tr := &http.Transport{
 			TLSClientConfig:    &tls.Config{InsecureSkipVerify: true},
@@ -139,7 +138,7 @@ func (wx Weixin) GetAccessToken() {
 		res, err := ioutil.ReadAll(result.Body)
 
 		// log.Println("res:", res);
-                if err != nil {
+		if err != nil {
 			log.Printf("获取微信 Token 2 返回数据错误: %v", err)
 			return
 		}
@@ -150,7 +149,7 @@ func (wx Weixin) GetAccessToken() {
 			return
 		}
 
-		log.Println("newAccess:", newAccess );
+		log.Println("newAccess:", newAccess)
 
 		if newAccess.ExpiresIn == 0 || newAccess.AccessToken == "" {
 			log.Printf("获取微信错误代码: %v, 错误信息: %v", newAccess.ErrCode, newAccess.ErrMsg)
@@ -190,14 +189,14 @@ func (wx Weixin) Send(tos string, message string, subject string) error {
 	var toUser string
 	if userList := strings.Split(tos, ","); len(userList) > 1 {
 		toUser = strings.Join(userList, "|")
-	}else{
-                toUser = tos
-        }
+	} else {
+		toUser = tos
+	}
 
 	text := content{}
 	text.Content = message
-	
-        log.Println("toUser:",toUser)
+
+	log.Println("toUser:", toUser)
 
 	//msg := msgPost{
 	//	ToUser:  toUser,
@@ -205,48 +204,47 @@ func (wx Weixin) Send(tos string, message string, subject string) error {
 	//	AgentID: util.StringToInt(wx.AgentID),
 	//	Text:    text,
 	//}
-        //{
-        //   "touser" : "UserID1|UserID2|UserID3",
-        //   "toparty" : "PartyID1 | PartyID2",
-        //   "totag" : "TagID1 | TagID2",
-        //   "msgtype" : "textcard",
-        //   "agentid" : 1,
-        //   "textcard" : {
-        //            "title" : "领奖通知",
-        //            "description" : "<div class=\"gray\">2016年9月26日</div> <div class=\"normal\">恭喜你抽中iPhone 7一台，领奖码：xxxx</div><div class=\"highlight\">请于2016年10月10日前联系行政同事领取</div>",
-        //            "url" : "URL",
-        //            "btntxt":"更多"
-        //   },
-        //   "enable_id_trans": 0,
-        //   "enable_duplicate_check": 0
-        //}
-        msg := msgPost{
-             ToUser:  toUser,
-             ToParty: "",
-             ToTag: "",
-             MsgType: "textcard",
-             AgentID: util.StringToInt(wx.AgentID),
-             TextCard : textcard { 
-                 Title: subject,
-                 Description: message,
-                 Url: "URL",
-                 Btntxt: "",
-             },
-             Enable_id_trans: 0,
-             Enable_duplicate_check: 0,
-        }
-        //msg := msgPost{
-        //     ToUser         :  toUser,
-        //     ToParty        : "",
-        //     ToTag          : "",
-        //     MsgType        : "markdown",
-        //     AgentID        : util.StringToInt(wx.AgentID),
-        //     MarkDown       : markdown{
-        //            Content : message,
-        //     },
-        //     Enable_duplicate_check : 0,
-        //}
-
+	//{
+	//   "touser" : "UserID1|UserID2|UserID3",
+	//   "toparty" : "PartyID1 | PartyID2",
+	//   "totag" : "TagID1 | TagID2",
+	//   "msgtype" : "textcard",
+	//   "agentid" : 1,
+	//   "textcard" : {
+	//            "title" : "领奖通知",
+	//            "description" : "<div class=\"gray\">2016年9月26日</div> <div class=\"normal\">恭喜你抽中iPhone 7一台，领奖码：xxxx</div><div class=\"highlight\">请于2016年10月10日前联系行政同事领取</div>",
+	//            "url" : "URL",
+	//            "btntxt":"更多"
+	//   },
+	//   "enable_id_trans": 0,
+	//   "enable_duplicate_check": 0
+	//}
+	msg := msgPost{
+		ToUser:  toUser,
+		ToParty: "",
+		ToTag:   "",
+		MsgType: "textcard",
+		AgentID: util.StringToInt(wx.AgentID),
+		TextCard: textcard{
+			Title:       subject,
+			Description: message,
+			Url:         "URL",
+			Btntxt:      "",
+		},
+		Enable_id_trans:        0,
+		Enable_duplicate_check: 0,
+	}
+	//msg := msgPost{
+	//     ToUser         :  toUser,
+	//     ToParty        : "",
+	//     ToTag          : "",
+	//     MsgType        : "markdown",
+	//     AgentID        : util.StringToInt(wx.AgentID),
+	//     MarkDown       : markdown{
+	//            Content : message,
+	//     },
+	//     Enable_duplicate_check : 0,
+	//}
 
 	token, found := wx.tokenCache.Get("token")
 	if !found {
@@ -259,8 +257,8 @@ func (wx Weixin) Send(tos string, message string, subject string) error {
 
 	url := weixinURL_Post + accessToken.AccessToken
 
-        log.Println("url:",url)
-         
+	log.Println("url:", url)
+
 	result, err := wxPost(url, msg)
 	if err != nil {
 		return err
