@@ -79,9 +79,10 @@ def get_graph_history( start_time, end_time ):
         "consol_fun": "AVERAGE",
     }
     url      = '%s/graph/history' % openfalcon
-    print data
-    response = requests.post(url, headers=headers, data=json.dumps(data), timeout=30)
+    print "post data: ", data
+    response = requests.post(url, headers=headers, data=json.dumps(data), timeout=40)
     
+ 
     #//hdfree_counters = [
     #//    "df.bytes.free.percent/fstype=ext4,mount=/",
     #//]
@@ -110,24 +111,24 @@ def get_graph_history( start_time, end_time ):
             #vmax = max( value['Values'], key=lambda x: x['value'] )
             #vmin = min( value['Values'], key=lambda x: x['value'] )
             if vcount > 0:
-                counter = str( value['counter'] )
+                ocounter = str( value['counter'] )
                 counter_wx = ""
-                if counter.find( "df.bytes.free.percent" ) >= 0 :
-                    counter = "- 硬盘空间：" + counter.split('=')[-1] + "：" + lab_rang + "%"
+                if ocounter.find( "df.bytes.free.percent" ) >= 0 :
+                    counter = "- 硬盘空间：" + ocounter.split('=')[-1] + "：" + lab_rang + "%"
                     if vmin < 15 :
                         counter += " **注意**"
-                        counter_wx = "硬盘：" + counter.split('=')[-1] + "：" + lab_rang_wx + "% !"
-                elif counter == "load.p15min":
+                        counter_wx = "P:" + ocounter.split('=')[-1] + ":" + lab_rang_wx + "% !"
+                elif ocounter == "load.p15min":
                     counter = "- 系统负载：" + lab_rang + "%"
-                    counter_wx = "负载：" + lab_rang_wx + "%"
+                    counter_wx = "L:" + lab_rang_wx + "%"
                     if vmax >= 85 :
                         counter += " **注意**"
                         counter_wx += " !"
-                elif counter == "mem.memfree.percent":
+                elif ocounter == "mem.memfree.percent":
                     counter = "- 内存空间：" + lab_rang + "%"
                     if vmin < 10 :
                         counter += " **注意**"
-                        counter_wx = "内存：" + lab_rang_wx + "% !"
+                        counter_wx = "M:" + lab_rang_wx + "% !"
                
                 #tem = { 'endpoint':value['endpoint'],'counter':counter,'count':vcount }
                 if data.has_key( endpoint ):
@@ -148,7 +149,7 @@ def get_graph_history( start_time, end_time ):
 
     text_wx = ""
     for key,value in data_wx.items():
-        text_wx += "主机：" + key + "\n" + value + "\n"
+        text_wx += "S " + key + "\n" + value + "\n"
     text_wx = text_wx.rstrip().rstrip("\n").rstrip("-").rstrip("\n").rstrip() #.replace( "-# 服务器", "# 服务器" )
 
     #print '得到指定监控项的历史记录:', data
@@ -175,8 +176,8 @@ def get_graph_history( start_time, end_time ):
         url  = "http://127.0.0.1:23329/api/v1/message"
         data = {
     	    "tos": info["im"],
-    	    "subject": "服务器日常报告 " + time.strftime("%Y-%m-%d %H:%M", time.localtime()) ,
-    	    "content": "## 服务器日常报告 " + time.strftime("%Y-%m-%d %H:%M", time.localtime()) + "\n" + text,
+    	    "subject": "服务器报告 " + time.strftime("%m-%d %H:%M", time.localtime()) ,
+    	    "content": "## 服务器报告 " + time.strftime("%Y-%m-%d %H:%M", time.localtime()) + "\n" + text,
     	    "content_wx": text_wx
         } 
         ret  = requests.post( url, data=data, timeout=30 )
@@ -200,8 +201,11 @@ def countit( in_value ):
         vmin = vmax = vavg = 0
     #print vmin, '~', vmax, ' - ', vcount
     if vmin == vmax:
-        lab_rang = "{:.2f}".format( vmin )
-        lab_rang_wx = "{:.1f}".format( vmin )
+        lab_rang = "{:.2f}".format( vmax )
+        lab_rang_wx = "{:.1f}".format( vmax )
+    elif vmax-vmin < 1: 
+        lab_rang = "{:.2f}".format( vmax )
+        lab_rang_wx = "{:.1f}".format( vmax )
     else:
         lab_rang = "{:.2f}~{:.2f}｜{:.2f}".format( vmin, vmax, vavg )
         lab_rang_wx = "{:.1f}~{:.1f}｜{:.1f}".format( vmin, vmax, vavg )
