@@ -143,7 +143,7 @@ def get_graph_history( start_time, end_time ):
 
     text = ""
     for key,value in data.items():
-        text += "# 主机：" + key + "\n" + value + "\n---\n"
+        text += "# 主机：" + key + "\n" + value + "---\n"
     text = text.rstrip().rstrip("\n").rstrip("-").rstrip("\n").rstrip() #.replace( "-# 服务器", "# 服务器" )
 
     text_wx = ""
@@ -176,7 +176,7 @@ def get_graph_history( start_time, end_time ):
         data = {
     	    "tos": info["im"],
     	    "subject": "服务器日常报告 " + time.strftime("%Y-%m-%d %H:%M", time.localtime()) ,
-    	    "content": "##服务器日常报告 " + time.strftime("%Y-%m-%d %H:%M", time.localtime()) + "\n" + text,
+    	    "content": "## 服务器日常报告 " + time.strftime("%Y-%m-%d %H:%M", time.localtime()) + "\n" + text,
     	    "content_wx": text_wx
         } 
         ret  = requests.post( url, data=data, timeout=30 )
