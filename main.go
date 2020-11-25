@@ -94,13 +94,13 @@ func main() {
         content_wx := c.FormValue("content_wx")
         content := c.FormValue("content")
         subject := c.FormValue("subject")
-        log.Println("tos:", tos, " content:", content, " subject:", subject)
+        log.Println("cc: tos:", tos, " content:", content, " content_wx:", content_wx, " subject:", subject)
 
         if content == "" {
             return echo.NewHTTPError(http.StatusBadRequest, "content is requied")
         }
         if content_wx == "" {
-            return echo.NewHTTPError(http.StatusBadRequest, "content is requied")
+            content = content_wx
         }
 
         if subject == "" {
@@ -111,7 +111,7 @@ func main() {
         var buffer_wx bytes.Buffer
 
         // log.Println( strings.Index(subject, "日常报告") )
-        if strings.Index(subject, "日常报告") < 0 {
+        if strings.Index(subject, "服务器告警") >= 0 {
             msg, err := util.HandleContent(content)
             if err != nil {
                 return err
