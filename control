@@ -86,7 +86,7 @@ function build() {
 function pack() {
     build
     git log -1 --pretty=%h > gitversion
-    version=`./$app -v`
+    version=`cat VERSION`
     file_list="public control cfg.example.json $app"
     echo "...tar $app-$version.tar.gz <= $file_list"
     tar zcf $app-$version.tar.gz gitversion $file_list
@@ -95,7 +95,7 @@ function pack() {
 function packbin() {
     build
     git log -1 --pretty=%h > gitversion
-    version=`./$app -v`
+    version=`cat VERSION`
     tar zcvf $app-bin-$version.tar.gz $app gitversion
 }
 
